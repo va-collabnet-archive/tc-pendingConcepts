@@ -1,0 +1,105 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>gov.va.oia.terminology.converters</groupId>
+	<artifactId>pendingConcepts-econcept</artifactId>
+	<!-- this should be set to ${sourceData.version}-loader-${loader.version} but that doesn't appease the maven gods that know best.... -->
+	<version>1.0-loader-1.0-SNAPSHOT</version>
+	
+	<packaging>pom</packaging>
+	<name>pendingConcepts-econcept</name>
+	
+	<properties>
+		<sourceData.version>1.0</sourceData.version>
+		<loader.version>1.0-SNAPSHOT</loader.version>
+		<snomed.version>2015.01.31-build-7</snomed.version>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-data</id>
+						<configuration>
+							<descriptors>
+								<descriptor>src/main/assembly/generated-artifact.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<phase>package</phase>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Get pendingConcepts source file from archiva -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>fetch-pendingConcepts-src-data</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>gov.va.oia.terminology.source.pendingConcepts</groupId>
+									<artifactId>pendingConcepts-src-data</artifactId>
+									<version>${sourceData.version}</version>
+									<type>zip</type>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${project.build.directory}/generated-resources/</outputDirectory>
+						</configuration>
+					</execution>
+					<execution>
+						<!-- We also need to read the SNOMED data file in order to load CHDR -->
+						<id>extract-snomed</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>org.ihtsdo.sct.baseline</groupId>
+									<artifactId>sct-econcept</artifactId>
+									<version>${snomed.version}</version>
+									<classifier>latest</classifier>
+									<type>zip</type>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${project.build.directory}/generated-resources/SCT</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>pendingConcepts-mojo</artifactId>
+				<version>${loader.version}</version>
+				<executions>
+					<execution>
+						<id>convert-pendingConcepts-to-jbin</id>
+						<configuration>
+							<inputFileLocation>${project.build.directory}/generated-resources/</inputFileLocation>
+							<sctInputFile>${project.build.directory}/generated-resources/SCT</sctInputFile>
+						</configuration>
+						<goals>
+							<goal>convert-pendingConcept-data</goal>
+						</goals>
+						<phase>generate-resources</phase>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
