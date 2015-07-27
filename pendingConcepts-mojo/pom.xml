@@ -4,14 +4,14 @@
 
 	<groupId>gov.va.oia.terminology.converters</groupId>
 	<artifactId>pendingConcepts-mojo</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.0.1</version>
 	
 	<packaging>maven-plugin</packaging>
 	<name>pendingConcepts-mojo</name>
 	
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<convertersCommonCode.version>3.1-SNAPSHOT</convertersCommonCode.version>
+		<convertersCommonCode.version>3.0</convertersCommonCode.version>
 	</properties>
 
 	<scm>

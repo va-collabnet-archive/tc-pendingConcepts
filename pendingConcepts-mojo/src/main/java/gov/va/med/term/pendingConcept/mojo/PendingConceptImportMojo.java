@@ -39,8 +39,6 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 {
 	private final String pendingConceptNamespaceSeed_ = "gov.va.med.term.pendingConcept";
 
-	private EConceptUtility eConceptUtil_;
-
 	private PropertyType ids_;
 	private PT_ContentVersion contentVersion_;
 	private BPT_MemberRefsets refsets_;
@@ -56,6 +54,12 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 	 */
 	@Parameter (required = true)
 	private File sctInputFile;
+	
+	/**
+	 * Source content version number
+	 */
+	@Parameter (required = true, defaultValue = "${sourceData.version}")
+	protected String sourceVersion;
 	
 
 	@Override
@@ -73,12 +77,12 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 			File touch = new File(outputFolder, "PendingConcepts.jbin");
 			DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(touch)));
 
-			eConceptUtil_ = new EConceptUtility(pendingConceptNamespaceSeed_, "Pending Concepts Path", dos, System.currentTimeMillis());
+			conceptUtility_ = new EConceptUtility(pendingConceptNamespaceSeed_, "Pending Concepts Path", dos, System.currentTimeMillis());
 			
 			ids_ = new PT_IDs();
 
 			contentVersion_ = new PT_ContentVersion();
-			refsets_ = new BPT_MemberRefsets("Pending Concepts Refsets");
+			refsets_ = new BPT_MemberRefsets("Pending Concepts");
 			refsets_.addProperty("All Pending Concepts");
 			
 			
@@ -136,19 +140,25 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 				throw new MojoExecutionException("Failed to find excel file with a .xlsx extension in " + inputFileLocation.getAbsolutePath());
 			}
 			
-			EConcept pendingConceptMetadata = eConceptUtil_.createConcept("Pending Concept Metadata", 
+			EConcept pendingConceptMetadata = conceptUtility_.createConcept("Pending Concept Metadata", 
 					ArchitectonicAuxiliary.Concept.ARCHITECTONIC_ROOT_CONCEPT.getPrimoridalUid());
+			
+			conceptUtility_.addStringAnnotation(pendingConceptMetadata, sourceVersion, contentVersion_.getProperty("Source Version").getUUID(), false);
+			conceptUtility_.addStringAnnotation(pendingConceptMetadata, converterResultVersion, contentVersion_.RELEASE.getUUID(), false);
+			conceptUtility_.addStringAnnotation(pendingConceptMetadata, loaderVersion, contentVersion_.LOADER_VERSION.getUUID(), false);
+			
+			
 			pendingConceptMetadata.writeExternal(dos);
 
-			eConceptUtil_.loadMetaDataItems(Arrays.asList(ids_, contentVersion_, refsets_), pendingConceptMetadata.getPrimordialUuid(), dos);
+			conceptUtility_.loadMetaDataItems(Arrays.asList(ids_, contentVersion_, refsets_), pendingConceptMetadata.getPrimordialUuid(), dos);
 
 			ConsoleUtil.println("Metadata load stats");
-			for (String line : eConceptUtil_.getLoadStats().getSummary())
+			for (String line : conceptUtility_.getLoadStats().getSummary())
 			{
 				ConsoleUtil.println(line);
 			}
 			
-			eConceptUtil_.clearLoadStats();
+			conceptUtility_.clearLoadStats();
 
 			allPendingConceptsRefset = refsets_.getConcept("All Pending Concepts");
 
@@ -163,7 +173,7 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 				writeEConcept(dos, pc);
 			}
 			
-			eConceptUtil_.storeRefsetConcepts(refsets_, dos);
+			conceptUtility_.storeRefsetConcepts(refsets_, dos);
 
 
 			dos.flush();
@@ -171,7 +181,7 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 
 			ConsoleUtil.println("Load Statistics");
 			// swap out vuids with names to make it more readable...
-			for (String line : eConceptUtil_.getLoadStats().getSummary())
+			for (String line : conceptUtility_.getLoadStats().getSummary())
 			{
 				ConsoleUtil.println(line);
 			}
@@ -199,33 +209,33 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 
 	private void writeEConcept(DataOutputStream dos, PendingConcept pendingConcept) throws Exception
 	{
-		long time = eConceptUtil_.defaultTime_;
+		long time = conceptUtility_.defaultTime_;
 
 		UUID newConId = getUUID(pendingConcept.getSCTID());
 		
-		EConcept concept = eConceptUtil_.createConcept(newConId, pendingConcept.getFSN(), time, eConceptUtil_.statusCurrentUuid_);
+		EConcept concept = conceptUtility_.createConcept(newConId, pendingConcept.getFSN(), time, conceptUtility_.statusCurrentUuid_);
 		String temp = createdConcepts_.put(newConId, pendingConcept.getFSN());
 		if (temp != null)
 		{
 			ConsoleUtil.printErrorln("Created the same pending concept twice!  " + pendingConcept.getSCTID() + " - " + pendingConcept.getFSN() + " - " + temp);
 		}
-		eConceptUtil_.addAdditionalIds(concept, pendingConcept.getSCTID() + "", PT_IDs.ID.PENDING_CONCEPT_ID.getProperty().getUUID(), false);
+		conceptUtility_.addAdditionalIds(concept, pendingConcept.getSCTID() + "", PT_IDs.ID.PENDING_CONCEPT_ID.getProperty().getUUID(), false);
 
 		String preferredDesc = pendingConcept.getFSN();
 		if (preferredDesc.endsWith(")") && preferredDesc.contains("("))
 		{
-			eConceptUtil_.addDescription(concept, preferredDesc.substring(0, preferredDesc.lastIndexOf("(") - 1), DescriptionType.SYNONYM, true, null, null, false);
+			conceptUtility_.addDescription(concept, preferredDesc.substring(0, preferredDesc.lastIndexOf("(") - 1), DescriptionType.SYNONYM, true, null, null, false);
 		}
 		else
 		{
 			ConsoleUtil.printErrorln("Pending Concept Description doesn't look like an FSN: '" + preferredDesc + "'");
 		}
 		
-		eConceptUtil_.addRelationship(concept, getUUID(pendingConcept.getParentSCTID()), (UUID)null, (Long)null);
-		eConceptUtil_.addRelationship(concept, allPendingConceptsRefset.getPrimordialUuid(), (UUID)null, (Long)null);
+		conceptUtility_.addRelationship(concept, getUUID(pendingConcept.getParentSCTID()), (UUID)null, (Long)null);
+		conceptUtility_.addRelationship(concept, allPendingConceptsRefset.getPrimordialUuid(), (UUID)null, (Long)null);
 		
 
-		eConceptUtil_.addRefsetMember(allPendingConceptsRefset, concept.getPrimordialUuid(), null, true, time);
+		conceptUtility_.addRefsetMember(allPendingConceptsRefset, concept.getPrimordialUuid(), null, true, time);
 		concept.writeExternal(dos);
 	}
 	
@@ -255,6 +265,7 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 		i.outputDirectory = new File("../pendingConcepts-econcept/target");
 		i.inputFileLocation = new File("../pendingConcepts-econcept/target/generated-resources/");
 		i.sctInputFile = new File("../pendingConcepts-econcept/target/generated-resources/SCT");
+		i.sourceVersion = "foo";
 		i.execute();
 	}
 }

@@ -8,5 +8,6 @@ public class PT_ContentVersion extends BPT_ContentVersion
 	public PT_ContentVersion()
 	{
 		super();
+		addProperty("Source Version");
 	}
 }
