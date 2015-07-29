@@ -232,7 +232,10 @@ public class PendingConceptImportMojo extends ConverterBaseMojo
 		}
 		
 		conceptUtility_.addRelationship(concept, getUUID(pendingConcept.getParentSCTID()), (UUID)null, (Long)null);
-		conceptUtility_.addRelationship(concept, allPendingConceptsRefset.getPrimordialUuid(), (UUID)null, (Long)null);
+		if (pendingConcept.getParentSCTID() != 410662002l)  //'Concept Model Attribute (attribute)' Do not add multiple parents to ROLE concepts, it breaks the classifier.  
+		{
+			conceptUtility_.addRelationship(concept, allPendingConceptsRefset.getPrimordialUuid(), (UUID)null, (Long)null);
+		}
 		
 
 		conceptUtility_.addRefsetMember(allPendingConceptsRefset, concept.getPrimordialUuid(), null, true, time);
