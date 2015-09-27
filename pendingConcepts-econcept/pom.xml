@@ -4,15 +4,15 @@
 	<groupId>gov.va.oia.terminology.converters</groupId>
 	<artifactId>pendingConcepts-econcept</artifactId>
 	<!-- this should be set to ${sourceData.version}-loader-${loader.version} but that doesn't appease the maven gods that know best.... -->
-	<version>1.0.1-loader-1.2-SNAPSHOT</version>
+	<version>1.0.1-loader-1.2</version>
 	
 	<packaging>pom</packaging>
 	<name>pendingConcepts-econcept</name>
 	
 	<properties>
 		<sourceData.version>1.0.1</sourceData.version>
-		<loader.version>1.2-SNAPSHOT</loader.version>
-		<snomed.version>2015.01.31-build-7</snomed.version>
+		<loader.version>1.2</loader.version>
+		<snomed.version>2015.07.31-build-3</snomed.version>
 	</properties>
 
 	<build>
